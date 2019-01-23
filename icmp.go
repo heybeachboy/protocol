@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/name5566/leaf/log"
 	"net"
 	"os"
 	"os/signal"
@@ -153,7 +152,7 @@ func catchSystemSignal() {
 
 func main() {
 	if len(os.Args) < 2 {
-	   log.Fatal("address is nill : %s",os.Args[0])
+	   fmt.Printf("host is null: %s",os.Args[0])
 	   os.Exit(1)
 	}
 	signal.Notify(sigChan, syscall.SIGILL, syscall.SIGQUIT, syscall.SIGINT)
