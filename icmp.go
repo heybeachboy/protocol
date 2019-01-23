@@ -51,7 +51,7 @@ func (i *ICMP) Ping(host string) {
 		}
 
 		i.SendICMPPacket(i.CreateICMP(uint16(count)), raddr)
-		time.Sleep(1 * time.Second)
+		time.Sleep(100 * time.Millisecond)
 		count++
 	}
 
