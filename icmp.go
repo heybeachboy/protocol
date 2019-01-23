@@ -42,16 +42,14 @@ func (i *ICMP) Ping(host string) {
 	}
 	fmt.Printf("Ping %s (%s):\n\n", raddr.String(), host)
 	count := 0
-
 	for {
 		quit := atomic.LoadInt32(&QUIT_FLAG)
-
 		if quit != 0 {
 			break
 		}
 
 		i.SendICMPPacket(i.CreateICMP(uint16(count)), raddr)
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(500 * time.Millisecond)
 		count++
 	}
 
