@@ -4,7 +4,12 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/name5566/leaf/log"
 	"net"
+	"os"
+	"os/signal"
+	"sync/atomic"
+	"syscall"
 	"time"
 )
 
@@ -15,6 +20,8 @@ import (
  *@date 2019-01-23 13:53:54
  */
 const TIME_OUT = 20 * time.Second //返回最长超时请求
+var sigChan = make(chan os.Signal)
+var QUIT_FLAG int32 = 0
 
 type ICMP struct {
 	Type        uint8
@@ -27,7 +34,27 @@ type ICMP struct {
 /**
  *ping 程序
  */
-func (i *ICMP) Ping() {
+func (i *ICMP) Ping(host string) {
+
+	raddr, err := net.ResolveIPAddr("ip", host)
+	if err != nil {
+		fmt.Printf("Fail to resolve %s, %s\n", host, err)
+		return
+	}
+	fmt.Printf("Ping %s (%s):\n\n", raddr.String(), host)
+	count := 0
+
+	for {
+		quit := atomic.LoadInt32(&QUIT_FLAG)
+
+		if quit != 0 {
+			break
+		}
+
+		i.SendICMPPacket(i.CreateICMP(uint16(count)), raddr)
+		time.Sleep(1 * time.Second)
+		count++
+	}
 
 }
 
@@ -35,7 +62,7 @@ func (i *ICMP) Ping() {
  *创建ICMP数据结构
  */
 
-func (i *ICMP) CreateICMP(sep uint16) (*ICMP) {
+func (i *ICMP) CreateICMP(sep uint16) (ICMP) {
 	var icmp ICMP
 	icmp.Type = 8
 	icmp.Code = 0
@@ -46,7 +73,7 @@ func (i *ICMP) CreateICMP(sep uint16) (*ICMP) {
 	binary.Write(&buffer, binary.BigEndian, icmp)
 	icmp.CheckSum = i.checkSum(buffer.Bytes())
 	buffer.Reset()
-	return &icmp
+	return icmp
 
 }
 
@@ -80,7 +107,6 @@ func (i *ICMP) SendICMPPacket(icmp ICMP, address *net.IPAddr) (error) {
 	duration := end.Sub(start).Nanoseconds() / 1e6
 
 	fmt.Printf("%d bytes from %s: seq=%d time=%dms\n", n, address.String(), icmp.SequenceNum, duration)
-
 	return err
 }
 
@@ -107,6 +133,32 @@ func (i *ICMP) checkSum(data []byte) (uint16) {
 
 }
 
+/**
+ *捕获系统信号处理
+ */
+func catchSystemSignal() {
+	for sig := range sigChan {
+		switch sig {
+		case syscall.SIGQUIT, syscall.SIGINT: //重新信号处理
+			atomic.StoreInt32(&QUIT_FLAG, 1)
+			os.Exit(0)
+		default:
+			fmt.Println("signal : ", sig)
+
+		}
+
+	}
+
+}
+
 func main() {
+	if len(os.Args) < 2 {
+	   log.Fatal("address is nill : %s",os.Args[0])
+	   os.Exit(1)
+	}
+	signal.Notify(sigChan, syscall.SIGILL, syscall.SIGQUIT, syscall.SIGINT)
+	i := ICMP{}
+	go i.Ping(os.Args[1])
+	catchSystemSignal() //主要处理退出处理
 
 }
