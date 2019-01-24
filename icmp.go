@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"sync/atomic"
 	"syscall"
 	"time"
 )
@@ -17,10 +18,10 @@ import (
  *@comment implement ICMP protocol with using golang
  *@date 2019-01-23 13:53:54
  */
-const TIME_OUT = 2 * time.Second //返回最长超时请求
+const TIME_OUT = 1 * time.Second //返回最长超时请求
 var (
 	sigChan         = make(chan os.Signal)
-	//QUIT_FLAG       int32 = 0
+	QUIT_FLAG       int32 = 0
 	conn            net.Conn
 	ipString        string
 	err             error
@@ -41,10 +42,10 @@ func (i *ICMP) Ping(host string) {
 	i.initConnection(host)
 	count := 0
 	for {
-		//quit := atomic.LoadInt32(&QUIT_FLAG)
-		//if quit != 0 {
-		//	break
-		//}
+		quit := atomic.LoadInt32(&QUIT_FLAG)
+		if quit != 0 {
+			break
+		}
 
 		i.SendICMPPacket(i.CreateICMP(uint16(count)))
 		time.Sleep(500 * time.Millisecond)
@@ -150,7 +151,7 @@ func catchSystemSignal() {
 	for sig := range sigChan {
 		switch sig {
 		case syscall.SIGQUIT, syscall.SIGINT: //重新信号处理
-			//atomic.StoreInt32(&QUIT_FLAG, 1)
+			atomic.StoreInt32(&QUIT_FLAG, 1)
 			conn.Close()
 			os.Exit(0)
 		default:
