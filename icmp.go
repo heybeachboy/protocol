@@ -53,6 +53,9 @@ func (i *ICMP) Ping(host string) {
 	}
 
 }
+/**
+ *初始化连接
+ */
 
 func (i *ICMP) initConnection(host string) {
 	addr, err := net.ResolveIPAddr("ip", host)
