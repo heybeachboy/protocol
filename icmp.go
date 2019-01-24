@@ -18,7 +18,7 @@ import (
  *@comment implement ICMP protocol with using golang
  *@date 2019-01-23 13:53:54
  */
-const TIME_OUT = 1 * time.Second //返回最长超时请求
+const TIME_OUT = 20 * time.Second //返回最长超时请求
 var (
 	sigChan         = make(chan os.Signal)
 	QUIT_FLAG       int32 = 0
@@ -105,9 +105,12 @@ func (i *ICMP) SendICMPPacket(icmp ICMP) (error) {
 		return err
 	}
 	start := time.Now()
-	conn.SetReadDeadline(start.Add(TIME_OUT))
 	reply := make([]byte, 1024)
 	n, err := conn.Read(reply)
+	if err := conn.SetReadDeadline(start.Add(TIME_OUT));err != nil {
+		fmt.Printf("%d bytes from %s: seq=%d time out : %s\n", n, ipString, icmp.SequenceNum,err.Error())
+		return err
+	}
 	reply = reply[:n]
 
 	if err != nil {
