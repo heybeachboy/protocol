@@ -65,8 +65,11 @@ func (i *ICMP) initConnection(host string) {
 	if err != nil {
 		fmt.Printf("Fail to connect to remote host: %s\n", err)
 		os.Exit(1)
+	}else {
+		ipString = addr.String()
+        fmt.Printf("Connection to host : %s successfuly\n",ipString)
 	}
-	ipString = addr.String()
+
 
 }
 
