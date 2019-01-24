@@ -21,6 +21,8 @@ import (
 const TIME_OUT = 20 * time.Second //返回最长超时请求
 var sigChan = make(chan os.Signal)
 var QUIT_FLAG int32 = 0
+var conn net.Conn
+var err  error
 
 type ICMP struct {
 	Type        uint8
@@ -78,12 +80,12 @@ func (i *ICMP) CreateICMP(sep uint16) (ICMP) {
  *发送ICMP数据包
  */
 func (i *ICMP) SendICMPPacket(icmp ICMP, address *net.IPAddr) (error) {
-	conn, err := net.DialIP("ip4:icmp", nil, address)
+	conn, err = net.DialIP("ip4:icmp", nil, address)
 	if err != nil {
 		fmt.Printf("Fail to connect to remote host: %s\n", err)
 		return err
 	}
-	defer conn.Close()
+	//defer conn.Close()
 	var buffer bytes.Buffer
 	binary.Write(&buffer, binary.BigEndian, icmp)
 	_, err = conn.Write(buffer.Bytes())
@@ -138,6 +140,7 @@ func catchSystemSignal() {
 		switch sig {
 		case syscall.SIGQUIT, syscall.SIGINT: //重新信号处理
 			atomic.StoreInt32(&QUIT_FLAG, 1)
+		    conn.Close()
 			os.Exit(0)
 		default:
 			fmt.Println("signal : ", sig)
