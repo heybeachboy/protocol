@@ -58,6 +58,7 @@ func (i *ICMP) initConnection(host string) {
 	addr, err := net.ResolveIPAddr("ip", host)
 	if err != nil {
 		fmt.Printf("Fail to resolve %s, %s\n", host, err)
+		os.Exit(1)
 		return
 	}
 
@@ -101,6 +102,7 @@ func (i *ICMP) SendICMPPacket(icmp ICMP) (error) {
 	var buffer bytes.Buffer
 	binary.Write(&buffer, binary.BigEndian, icmp)
 	_, err = conn.Write(buffer.Bytes())
+	buffer.Reset()
 	if err != nil {
 		return err
 	}
