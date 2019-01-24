@@ -19,10 +19,13 @@ import (
  *@date 2019-01-23 13:53:54
  */
 const TIME_OUT = 20 * time.Second //返回最长超时请求
-var sigChan = make(chan os.Signal)
-var QUIT_FLAG int32 = 0
-var conn net.Conn
-var err  error
+var (
+	sigChan         = make(chan os.Signal)
+	QUIT_FLAG       int32 = 0
+	conn            net.Conn
+	ipString        string
+	err             error
+)
 
 type ICMP struct {
 	Type        uint8
@@ -36,13 +39,7 @@ type ICMP struct {
  *ping 程序
  */
 func (i *ICMP) Ping(host string) {
-
-	raddr, err := net.ResolveIPAddr("ip", host)
-	if err != nil {
-		fmt.Printf("Fail to resolve %s, %s\n", host, err)
-		return
-	}
-	fmt.Printf("Ping %s (%s):\n\n", raddr.String(), host)
+	i.initConnection(host)
 	count := 0
 	for {
 		quit := atomic.LoadInt32(&QUIT_FLAG)
@@ -50,10 +47,26 @@ func (i *ICMP) Ping(host string) {
 			break
 		}
 
-		i.SendICMPPacket(i.CreateICMP(uint16(count)), raddr)
+		i.SendICMPPacket(i.CreateICMP(uint16(count)))
 		time.Sleep(500 * time.Millisecond)
 		count++
 	}
+
+}
+
+func (i *ICMP) initConnection(host string) {
+	addr, err := net.ResolveIPAddr("ip", host)
+	if err != nil {
+		fmt.Printf("Fail to resolve %s, %s\n", host, err)
+		return
+	}
+
+	conn, err = net.DialIP("ip4:icmp", nil, addr)
+	if err != nil {
+		fmt.Printf("Fail to connect to remote host: %s\n", err)
+		os.Exit(1)
+	}
+	ipString = addr.String()
 
 }
 
@@ -79,12 +92,8 @@ func (i *ICMP) CreateICMP(sep uint16) (ICMP) {
 /**
  *发送ICMP数据包
  */
-func (i *ICMP) SendICMPPacket(icmp ICMP, address *net.IPAddr) (error) {
-	conn, err = net.DialIP("ip4:icmp", nil, address)
-	if err != nil {
-		fmt.Printf("Fail to connect to remote host: %s\n", err)
-		return err
-	}
+func (i *ICMP) SendICMPPacket(icmp ICMP) (error) {
+
 	//defer conn.Close()
 	var buffer bytes.Buffer
 	binary.Write(&buffer, binary.BigEndian, icmp)
@@ -105,7 +114,7 @@ func (i *ICMP) SendICMPPacket(icmp ICMP, address *net.IPAddr) (error) {
 	end := time.Now()
 	duration := end.Sub(start).Nanoseconds() / 1e6
 
-	fmt.Printf("%d bytes from %s: seq=%d time=%dms\n", n, address.String(), icmp.SequenceNum, duration)
+	fmt.Printf("%d bytes from %s: seq=%d time=%dms\n", n, ipString, icmp.SequenceNum, duration)
 	return err
 }
 
@@ -140,7 +149,7 @@ func catchSystemSignal() {
 		switch sig {
 		case syscall.SIGQUIT, syscall.SIGINT: //重新信号处理
 			atomic.StoreInt32(&QUIT_FLAG, 1)
-		    conn.Close()
+			conn.Close()
 			os.Exit(0)
 		default:
 			fmt.Println("signal : ", sig)
@@ -153,8 +162,8 @@ func catchSystemSignal() {
 
 func main() {
 	if len(os.Args) < 2 {
-	   fmt.Printf("host is null: %s",os.Args[0])
-	   os.Exit(1)
+		fmt.Printf("host is null: %s", os.Args[0])
+		os.Exit(1)
 	}
 	signal.Notify(sigChan, syscall.SIGILL, syscall.SIGQUIT, syscall.SIGINT)
 	i := ICMP{}
