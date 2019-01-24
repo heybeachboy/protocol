@@ -17,7 +17,7 @@ import (
  *@comment implement ICMP protocol with using golang
  *@date 2019-01-23 13:53:54
  */
-const TIME_OUT = 20 * time.Second //返回最长超时请求
+const TIME_OUT = 2 * time.Second //返回最长超时请求
 var (
 	sigChan         = make(chan os.Signal)
 	//QUIT_FLAG       int32 = 0
