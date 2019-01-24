@@ -106,11 +106,16 @@ func (i *ICMP) SendICMPPacket(icmp ICMP) (error) {
 	}
 	start := time.Now()
 	reply := make([]byte, 1024)
-	n, err := conn.Read(reply)
 	if err := conn.SetReadDeadline(start.Add(TIME_OUT));err != nil {
-		fmt.Printf("%d bytes from %s: seq=%d time out : %s\n", n, ipString, icmp.SequenceNum,err.Error())
+		fmt.Printf("%d bytes from %s: seq=%d time out : %s\n", 0, ipString, icmp.SequenceNum,err.Error())
 		return err
 	}
+	n, err := conn.Read(reply)
+	if err := conn.SetReadDeadline(time.Time{});err != nil {
+		fmt.Printf("%d bytes from %s: seq=%d time out : %s\n", 0, ipString, icmp.SequenceNum,err.Error())
+		return err
+	}
+
 	reply = reply[:n]
 
 	if err != nil {
