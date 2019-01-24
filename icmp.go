@@ -66,10 +66,11 @@ func (i *ICMP) initConnection(host string) {
 	if err != nil {
 		fmt.Printf("Fail to connect to remote host: %s\n", err)
 		os.Exit(1)
-	}else {
-		ipString = addr.String()
-        fmt.Printf("Connection to host : %s successfuly\n",ipString)
 	}
+
+	ipString = addr.String()
+	// fmt.Printf("Connection to host : %s successfuly\n",ipString)
+
 
 
 }
@@ -126,7 +127,7 @@ func (i *ICMP) SendICMPPacket(icmp ICMP) (error) {
 
 	end := time.Now()
 	duration := end.Sub(start).Nanoseconds() / 1e6
-
+    //fmt.Printf("reply size %d : %v\n",n,reply)
 	fmt.Printf("%d bytes from %s: seq=%d time=%dms\n", n, ipString, icmp.SequenceNum, duration)
 	return err
 }
@@ -174,6 +175,7 @@ func catchSystemSignal() {
 }
 
 func main() {
+	os.Args = append(os.Args,`www.baidu.com`)
 	if len(os.Args) < 2 {
 		fmt.Printf("host is null: %s", os.Args[0])
 		os.Exit(1)
